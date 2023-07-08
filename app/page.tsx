@@ -1,113 +1,203 @@
-import Image from 'next/image'
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+const API_URL = `${process.env.NEXT_PUBLIC_URL}/api/todoList`;
 
 export default function Home() {
+  const [list, setList] = useState<any[]>([]);
+
+  async function getTodoList() {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    setList(data);
+  }
+
+  // for inital loading
+  useEffect(() => {
+    getTodoList();
+  }, []);
+
+  // READ section
+  const readSection = (
+    <div className="space-y-2">
+      <div className="mt-2 text-center font-bold text-2xl">TODO LIST</div>
+      <div className="rounded-lg border border-gray-800">
+        <ul role="list" className="divide-y divide-gray-500">
+          {list.map((item: { id: number; todo: string }) => (
+            <li
+              key={item.id}
+              className="flex p-2 justify-between gap-x-6 text-lg"
+            >
+              <span>{item.todo}</span>
+              <span>ID # {item.id}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+
+  // CREATE section
+  const addRef = useRef("");
+  const handleAddChange = (e: React.FormEvent<HTMLInputElement>) => {
+    addRef.current = e.currentTarget.value;
+  };
+  const addItem = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // prevent refreshing
+    const init = {
+      method: "POST",
+      body: JSON.stringify({ todo: addRef.current }),
+    };
+    const response = await (await fetch(API_URL, init)).json();
+    if (response.message === "success") {
+      const info = response.todoInfo;
+      setList([...list, { id: info.id, todo: info.todo }]);
+    }
+    (e.target as HTMLFormElement).reset();
+  };
+  const createSection = (
+    <div className="space-y-2">
+      <div className="mt-2 text-center font-bold text-2xl">ADD</div>
+      <form className="space-y-2" onSubmit={addItem}>
+        <label htmlFor="create" className="font-bold text-lg">
+          Add a new todo:
+        </label>
+        <br />
+        <input
+          className="outline outline-1 w-full indent-2"
+          type="text"
+          id="create"
+          placeholder="TODO"
+          onChange={handleAddChange}
+        ></input>
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold px-3 py-1 border border-blue-700 rounded w-full"
+          type="submit"
+        >
+          Submit
+        </button>
+      </form>
+    </div>
+  );
+
+  // DELETE Section
+  const deleteRef = useRef("");
+  const handleDeleteChange = (e: React.FormEvent<HTMLInputElement>) => {
+    deleteRef.current = e.currentTarget.value;
+  };
+  const deleteItem = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // prevent refreshing
+    const deleteId = Number(deleteRef.current);
+    if (!Number.isFinite(deleteId)) return;
+    const init = {
+      method: "DELETE",
+      body: JSON.stringify({ id: deleteId }),
+    };
+    const response = await (await fetch(API_URL, init)).json();
+    if (response.message === "success") {
+      let newList = [...list];
+      for (let i = 0; i < newList.length; i += 1) {
+        if (list[i].id === deleteId) {
+          newList.splice(i, 1);
+          break;
+        }
+      }
+      setList(newList);
+    }
+    (e.target as HTMLFormElement).reset();
+  };
+  const deleteSection = (
+    <div className="space-y-2">
+      <div className="mt-2 text-center font-bold text-2xl">DELETE</div>
+      <form className="space-y-2" onSubmit={deleteItem}>
+        <label htmlFor="create" className="font-bold text-lg">
+          Submit the ID you want to delete:
+        </label>
+        <br />
+        <input
+          className="outline outline-1 w-full indent-2"
+          type="text"
+          id="dekete"
+          placeholder="ID"
+          onChange={handleDeleteChange}
+        ></input>
+        <button className="bg-red-500 hover:bg-red-700 text-white font-bold px-3 py-1 border border-red-700 rounded w-full">
+          Submit
+        </button>
+      </form>
+    </div>
+  );
+
+  // UPDATE Section
+  const updateIdRef = useRef("");
+  const updateTodoRef = useRef("");
+  const handleUpdateIdChange = (e: React.FormEvent<HTMLInputElement>) => {
+    updateIdRef.current = e.currentTarget.value;
+  };
+  const handleUpdateTodoChange = (e: React.FormEvent<HTMLInputElement>) => {
+    updateTodoRef.current = e.currentTarget.value;
+  };
+  const updateItem = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // prevent refreshing
+    const updateId = Number(updateIdRef.current);
+    const updateTodo = updateTodoRef.current;
+    if (!Number.isFinite(updateId)) return;
+    const init = {
+      method: "PUT",
+      body: JSON.stringify({ id: updateId, todo: updateTodo }),
+    };
+    const response = await (
+      await fetch("http://localhost:3000/api/todoList", init)
+    ).json();
+    if (response.message === "success") {
+      let newList = [...list];
+      for (let i = 0; i < newList.length; i += 1) {
+        if (list[i].id === updateId) {
+          newList.splice(i, 1, { id: updateId, todo: updateTodo });
+          break;
+        }
+      }
+      setList(newList);
+    }
+    (e.target as HTMLFormElement).reset();
+  };
+  const updateSection = (
+    <div className="space-y-2">
+      <div className="mt-2 text-center font-bold text-2xl">UPDATE</div>
+      <form className="space-y-2" onSubmit={updateItem}>
+        <label htmlFor="update_id" className="font-bold text-lg">
+          Submit the ID and TODO you want to change:
+        </label>
+        <input
+          className="outline outline-1 w-full indent-2"
+          type="text"
+          id="update_id"
+          placeholder="ID"
+          onChange={handleUpdateIdChange}
+        ></input>
+        <input
+          className="outline outline-1 w-full indent-2"
+          type="text"
+          id="update_todo"
+          placeholder="TODO"
+          onChange={handleUpdateTodoChange}
+        ></input>
+        <button className="bg-green-500 hover:bg-green-700 text-white font-bold px-3 py-1 border border-green-700 rounded w-full">
+          Submit
+        </button>
+      </form>
+    </div>
+  );
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
+    <div className="flex justify-center">
+      <div className="m-2 space-y-4 divide-y-4 max-w-lg">
+        {readSection}
+        {createSection}
+        {deleteSection}
+        {updateSection}
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    </div>
+  );
 }
